@@ -1,4 +1,3 @@
-
 // Types for chess pieces and board state
 export type PieceType = 'pawn' | 'knight' | 'bishop' | 'rook' | 'queen' | 'king';
 export type PieceColor = 'white' | 'black';
@@ -261,8 +260,21 @@ export const getValidMoves = (
   return validMoves;
 };
 
+// Check if a pawn is eligible for promotion (at opponent's back rank)
+export const isPawnPromotion = (position: Position, piece: ChessPiece): boolean => {
+  if (piece.type !== 'pawn') return false;
+  
+  // White pawns promote on row 0, black pawns promote on row 7
+  return (piece.color === 'white' && position.row === 0) || 
+         (piece.color === 'black' && position.row === 7);
+};
+
 // Function to apply a move to the board
-export const applyMove = (board: ChessBoard, from: Position, to: Position): { newBoard: ChessBoard, capturedPiece: ChessPiece | null } => {
+export const applyMove = (board: ChessBoard, from: Position, to: Position): { 
+  newBoard: ChessBoard, 
+  capturedPiece: ChessPiece | null,
+  isPromotion: boolean 
+} => {
   const newBoard = board.map(row => [...row]);
   const piece = newBoard[from.row][from.col];
   const capturedPiece = newBoard[to.row][to.col];
@@ -276,9 +288,30 @@ export const applyMove = (board: ChessBoard, from: Position, to: Position): { ne
     piece.hasMoved = true;
   }
   
-  // TODO: Handle special moves like castling, en passant, and promotion
+  // Check if this is a pawn promotion move
+  const isPromotion = piece && isPawnPromotion(to, piece);
   
-  return { newBoard, capturedPiece: capturedPiece || null };
+  return { newBoard, capturedPiece: capturedPiece || null, isPromotion };
+};
+
+// Function to promote a pawn to a new piece type
+export const promotePawn = (
+  board: ChessBoard,
+  position: Position,
+  newType: PieceType
+): ChessBoard => {
+  const newBoard = board.map(row => [...row]);
+  const piece = newBoard[position.row][position.col];
+  
+  if (piece && piece.type === 'pawn') {
+    newBoard[position.row][position.col] = {
+      type: newType,
+      color: piece.color,
+      hasMoved: true
+    };
+  }
+  
+  return newBoard;
 };
 
 // Function to convert algebraic notation to position

@@ -8,7 +8,9 @@ import {
   PieceColor, 
   initializeBoard,
   Move,
-  positionToNotation
+  positionToNotation,
+  PieceType,
+  promotePawn
 } from '@/lib/chess-utils';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -72,6 +74,28 @@ const ChessGame = () => {
     }
   };
   
+  // Handle pawn promotion
+  const handlePromotion = (position: Position, newType: PieceType) => {
+    // Update the board with the promoted piece
+    const newBoard = promotePawn(board, position, newType);
+    setBoard(newBoard);
+    
+    // Update the last move in the history to include promotion info
+    if (moveHistory.length > 0) {
+      const lastMoveIndex = moveHistory.length - 1;
+      const updatedMoves = [...moveHistory];
+      updatedMoves[lastMoveIndex] = {
+        ...updatedMoves[lastMoveIndex],
+        isPromotion: true,
+        promotedTo: newType
+      };
+      setMoveHistory(updatedMoves);
+    }
+    
+    // Switch players
+    setCurrentPlayer(currentPlayer === 'white' ? 'black' : 'white');
+  };
+  
   // Reset the game
   const resetGame = () => {
     setBoard(initializeBoard());
@@ -104,6 +128,7 @@ const ChessGame = () => {
           board={board} 
           currentPlayer={currentPlayer} 
           onMove={handleMove} 
+          onPromotion={handlePromotion}
           lastMove={lastMove}
           gameOver={winner !== null}
         />
@@ -158,11 +183,12 @@ const ChessGame = () => {
                   const to = positionToNotation(move.to);
                   const pieceSymbol = move.piece.type.charAt(0).toUpperCase();
                   const captureSymbol = move.capturedPiece ? 'x' : '-';
+                  const promotionText = move.isPromotion ? `=${move.promotedTo?.charAt(0).toUpperCase()}` : '';
                   
                   return (
                     <li key={index} className="text-sm mb-1">
                       <span className={move.piece.color === 'white' ? 'text-black' : 'text-gray-700'}>
-                        {Math.floor(index/2) + 1}.{move.piece.color === 'black' ? '..' : ''} {pieceSymbol}{from}{captureSymbol}{to}
+                        {Math.floor(index/2) + 1}.{move.piece.color === 'black' ? '..' : ''} {pieceSymbol}{from}{captureSymbol}{to}{promotionText}
                       </span>
                     </li>
                   );
