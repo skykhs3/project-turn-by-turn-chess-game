@@ -13,12 +13,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
-// Function to get piece image URL
-const getPieceImageUrl = (piece: ChessPiece): string => {
-  const { type, color } = piece;
-  return `/chess-pieces/${color}-${type}.png`;
-};
-
 const ChessGame = () => {
   // Game state
   const [board, setBoard] = useState<ChessBoardType>(initializeBoard());
@@ -124,13 +118,13 @@ const ChessGame = () => {
               <h4 className="text-sm font-semibold mb-1">White</h4>
               <div className="flex flex-wrap gap-1">
                 {capturedPieces.white.map((piece, index) => (
-                  <div key={index} className="w-8 h-8">
-                    <img 
-                      src={getPieceImageUrl(piece)} 
-                      alt={`${piece.color} ${piece.type}`} 
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
+                  <span key={index} className="text-2xl">
+                    {piece.type === 'pawn' ? '♙' : 
+                     piece.type === 'knight' ? '♘' : 
+                     piece.type === 'bishop' ? '♗' : 
+                     piece.type === 'rook' ? '♖' : 
+                     piece.type === 'queen' ? '♕' : '♔'}
+                  </span>
                 ))}
               </div>
             </div>
@@ -138,13 +132,13 @@ const ChessGame = () => {
               <h4 className="text-sm font-semibold mb-1">Black</h4>
               <div className="flex flex-wrap gap-1">
                 {capturedPieces.black.map((piece, index) => (
-                  <div key={index} className="w-8 h-8">
-                    <img 
-                      src={getPieceImageUrl(piece)} 
-                      alt={`${piece.color} ${piece.type}`} 
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
+                  <span key={index} className="text-2xl">
+                    {piece.type === 'pawn' ? '♟' : 
+                     piece.type === 'knight' ? '♞' : 
+                     piece.type === 'bishop' ? '♝' : 
+                     piece.type === 'rook' ? '♜' : 
+                     piece.type === 'queen' ? '♛' : '♚'}
+                  </span>
                 ))}
               </div>
             </div>

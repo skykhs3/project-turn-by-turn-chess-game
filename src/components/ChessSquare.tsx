@@ -22,16 +22,10 @@ const ChessSquare = ({
   const { row, col } = position;
   const isLight = (row + col) % 2 === 0;
   
-  // Function to get piece image URL
-  const getPieceImageUrl = (piece: ChessPiece): string => {
-    const { type, color } = piece;
-    return `/chess-pieces/${color}-${type}.png`;
-  };
-  
   return (
     <div
       className={cn(
-        'relative flex items-center justify-center p-1 transition-all duration-200',
+        'relative flex items-center justify-center text-4xl md:text-5xl p-1 transition-all duration-200',
         'aspect-square', // Force square aspect ratio
         isLight ? 'bg-chess-light-square' : 'bg-chess-dark-square',
         isSelected && 'bg-chess-selected',
@@ -56,14 +50,11 @@ const ChessSquare = ({
       {/* Chess piece */}
       {piece && (
         <div className={cn(
-          'w-full h-full flex items-center justify-center transition-all',
+          'transition-all',
+          piece.color === 'white' ? 'text-white' : 'text-black',
           isSelected && 'animate-piece-move'
         )}>
-          <img 
-            src={getPieceImageUrl(piece)} 
-            alt={`${piece.color} ${piece.type}`} 
-            className="w-[85%] h-[85%] object-contain pointer-events-none"
-          />
+          {getPieceSymbol(piece)}
         </div>
       )}
       
