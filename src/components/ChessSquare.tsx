@@ -26,6 +26,7 @@ const ChessSquare = ({
     <div
       className={cn(
         'relative flex items-center justify-center text-4xl md:text-5xl p-1 transition-all duration-200',
+        'aspect-square', // Force square aspect ratio
         isLight ? 'bg-chess-light-square' : 'bg-chess-dark-square',
         isSelected && 'bg-chess-selected',
         isValidMove && 'cursor-pointer',
