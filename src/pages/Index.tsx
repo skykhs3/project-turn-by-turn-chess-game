@@ -1,11 +1,22 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import ChessGame from '@/components/ChessGame';
 
 const Index = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+      <div className="max-w-6xl mx-auto">
+        <header className="mb-8 text-center">
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">Chess Arena</h1>
+          <p className="text-gray-600">A turn-by-turn chess game for two players on one screen.</p>
+        </header>
+        
+        <main>
+          <ChessGame />
+        </main>
+        
+        <footer className="mt-12 text-center text-gray-500 text-sm">
+          <p>© 2025 Chess Arena. Use white and black pieces to play chess with a friend.</p>
+        </footer>
       </div>
     </div>
   );
