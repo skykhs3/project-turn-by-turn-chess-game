@@ -11,7 +11,7 @@ import {
   PieceColor
 } from '@/lib/chess-utils';
 import ChessSquare from './ChessSquare';
-import { toast } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 
 interface ChessBoardProps {
   board: ChessBoardType;

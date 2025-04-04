@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import ChessBoard from './ChessBoard';
 import { 
@@ -11,7 +10,7 @@ import {
   positionToNotation
 } from '@/lib/chess-utils';
 import { Button } from '@/components/ui/button';
-import { toast } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 
 const ChessGame = () => {
   // Game state

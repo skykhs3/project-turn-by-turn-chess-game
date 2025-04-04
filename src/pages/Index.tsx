@@ -1,5 +1,6 @@
 
 import ChessGame from '@/components/ChessGame';
+import { Toaster } from 'sonner';
 
 const Index = () => {
   return (
@@ -12,6 +13,7 @@ const Index = () => {
         
         <main>
           <ChessGame />
+          <Toaster position="bottom-right" />
         </main>
         
         <footer className="mt-12 text-center text-gray-500 text-sm">
