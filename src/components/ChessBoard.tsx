@@ -18,9 +18,10 @@ interface ChessBoardProps {
   currentPlayer: PieceColor;
   onMove: (from: Position, to: Position, capturedPiece: ChessPiece | null) => void;
   lastMove: { from: Position; to: Position } | null;
+  gameOver?: boolean;
 }
 
-const ChessBoard = ({ board, currentPlayer, onMove, lastMove }: ChessBoardProps) => {
+const ChessBoard = ({ board, currentPlayer, onMove, lastMove, gameOver = false }: ChessBoardProps) => {
   const [selectedSquare, setSelectedSquare] = useState<Position | null>(null);
   const [validMoves, setValidMoves] = useState<Position[]>([]);
   
@@ -35,6 +36,12 @@ const ChessBoard = ({ board, currentPlayer, onMove, lastMove }: ChessBoardProps)
   }, [selectedSquare, board, currentPlayer]);
   
   const handleSquareClick = (position: Position) => {
+    // Don't allow moves if game is over
+    if (gameOver) {
+      toast('Game over! Start a new game.');
+      return;
+    }
+    
     const piece = board[position.row][position.col];
     
     // If no square is selected yet
@@ -111,7 +118,7 @@ const ChessBoard = ({ board, currentPlayer, onMove, lastMove }: ChessBoardProps)
             position={position}
             piece={piece}
             isSelected={isSelected}
-            isValidMove={isValidMoveSquare}
+            isValidMove={isValidMoveSquare && !gameOver}
             isLastMove={isLastMove}
             onClick={() => handleSquareClick(position)}
           />

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import ChessBoard from './ChessBoard';
 import { 
@@ -22,6 +23,7 @@ const ChessGame = () => {
     white: ChessPiece[];
     black: ChessPiece[];
   }>({ white: [], black: [] });
+  const [winner, setWinner] = useState<PieceColor | null>(null);
   
   // Handle player move
   const handleMove = (from: Position, to: Position, capturedPiece: ChessPiece | null) => {
@@ -54,10 +56,20 @@ const ChessGame = () => {
         newCapturedPieces.black = [...capturedPieces.black, capturedPiece];
       }
       setCapturedPieces(newCapturedPieces);
+      
+      // Check if a king was captured (game over)
+      if (capturedPiece.type === 'king') {
+        setWinner(currentPlayer);
+        toast(`${currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1)} wins the game by capturing the king!`, {
+          duration: 5000
+        });
+      }
     }
     
-    // Switch players
-    setCurrentPlayer(currentPlayer === 'white' ? 'black' : 'white');
+    // Switch players if game is not over
+    if (!capturedPiece || capturedPiece.type !== 'king') {
+      setCurrentPlayer(currentPlayer === 'white' ? 'black' : 'white');
+    }
   };
   
   // Reset the game
@@ -67,6 +79,7 @@ const ChessGame = () => {
     setMoveHistory([]);
     setLastMove(null);
     setCapturedPieces({ white: [], black: [] });
+    setWinner(null);
     toast('New game started');
   };
   
@@ -74,10 +87,17 @@ const ChessGame = () => {
     <div className="flex flex-col lg:flex-row gap-8 items-center lg:items-start">
       <div className="flex flex-col items-center">
         <div className="mb-4 flex items-center justify-between w-full">
-          <h2 className="text-xl font-bold">
-            <span className={`inline-block w-3 h-3 rounded-full mr-2 ${currentPlayer === 'white' ? 'bg-white border border-gray-300' : 'bg-black'}`}></span>
-            {currentPlayer === 'white' ? 'White' : 'Black'}'s Turn
-          </h2>
+          {winner ? (
+            <h2 className="text-xl font-bold">
+              <span className={`inline-block w-3 h-3 rounded-full mr-2 ${winner === 'white' ? 'bg-white border border-gray-300' : 'bg-black'}`}></span>
+              {winner.charAt(0).toUpperCase() + winner.slice(1)} Won!
+            </h2>
+          ) : (
+            <h2 className="text-xl font-bold">
+              <span className={`inline-block w-3 h-3 rounded-full mr-2 ${currentPlayer === 'white' ? 'bg-white border border-gray-300' : 'bg-black'}`}></span>
+              {currentPlayer === 'white' ? 'White' : 'Black'}'s Turn
+            </h2>
+          )}
           <Button onClick={resetGame} variant="outline">New Game</Button>
         </div>
         <ChessBoard 
@@ -85,6 +105,7 @@ const ChessGame = () => {
           currentPlayer={currentPlayer} 
           onMove={handleMove} 
           lastMove={lastMove}
+          gameOver={winner !== null}
         />
       </div>
       
