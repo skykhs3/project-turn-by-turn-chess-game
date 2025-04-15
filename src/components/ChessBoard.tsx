@@ -31,6 +31,7 @@ import {
   DialogTitle, 
   DialogDescription 
 } from '@/components/ui/dialog';
+import { Queen, Rook, Bishop, ChessKnight } from 'lucide-react';
 
 interface ChessBoardProps {
   gameState: GameState;
@@ -61,6 +62,13 @@ const ChessBoard = ({
   const [validMoves, setValidMoves] = useState<Position[]>([]);
   const [promotionPosition, setPromotionPosition] = useState<Position | null>(null);
   const [promotionSelectValue, setPromotionSelectValue] = useState<PieceType>('queen');
+  const [pendingPromotion, setPendingPromotion] = useState<{
+    from: Position;
+    to: Position;
+    capturedPiece: ChessPiece | null;
+    isEnPassant: boolean;
+    enPassantTarget: Position | null;
+  } | null>(null);
   
   // Update valid moves when a square is selected
   useEffect(() => {
@@ -101,8 +109,37 @@ const ChessBoard = ({
     // If another square is clicked
     // Check if it's a valid move
     if (isValidMove(gameState, selectedSquare, position)) {
+      const selectedPiece = board[selectedSquare.row][selectedSquare.col];
+      
+      // Check if it's a pawn moving to the last rank (promotion)
+      if (selectedPiece?.type === 'pawn') {
+        const isPromotion = (selectedPiece.color === 'white' && position.row === 0) ||
+                           (selectedPiece.color === 'black' && position.row === 7);
+        
+        if (isPromotion) {
+          const { 
+            capturedPiece, 
+            isEnPassant,
+            enPassantTarget: newEnPassantTarget 
+          } = applyMove(gameState, selectedSquare, position);
+          
+          // Store the promotion move details for later processing
+          setPendingPromotion({
+            from: selectedSquare,
+            to: position,
+            capturedPiece,
+            isEnPassant,
+            enPassantTarget: newEnPassantTarget
+          });
+          
+          // Show promotion dialog
+          setPromotionPosition(position);
+          return;
+        }
+      }
+      
+      // Regular non-promotion move
       const { 
-        newBoard, 
         capturedPiece, 
         isPromotion,
         isCastling,
@@ -110,12 +147,6 @@ const ChessBoard = ({
         isEnPassant,
         enPassantTarget: newEnPassantTarget
       } = applyMove(gameState, selectedSquare, position);
-      
-      // Handle promotion
-      if (isPromotion) {
-        setPromotionPosition(position);
-        return;
-      }
       
       // Call the onMove callback to update the game state
       onMove(
@@ -164,18 +195,13 @@ const ChessBoard = ({
   };
   
   const handlePromotionConfirm = () => {
-    if (promotionPosition && selectedSquare) {
-      // Call the onMove function first with isPromotion set to true
-      const { 
-        capturedPiece, 
-        isEnPassant,
-        enPassantTarget: newEnPassantTarget
-      } = applyMove(gameState, selectedSquare, promotionPosition);
+    if (promotionPosition && pendingPromotion) {
+      const { from, to, capturedPiece, isEnPassant, enPassantTarget: newEnPassantTarget } = pendingPromotion;
       
       // First call onMove to update the game state with the promotion move
       onMove(
-        selectedSquare, 
-        promotionPosition, 
+        from, 
+        to, 
         capturedPiece, 
         true, // isPromotion
         false, // isCastling
@@ -184,13 +210,24 @@ const ChessBoard = ({
       );
       
       // Then call onPromotion to update the piece type
-      onPromotion(promotionPosition, promotionSelectValue);
+      onPromotion(to, promotionSelectValue);
       
       // Reset states
       setSelectedSquare(null);
       setPromotionPosition(null);
+      setPendingPromotion(null);
       
       toast(`Pawn promoted to ${promotionSelectValue}`);
+    }
+  };
+  
+  const renderPieceIcon = (pieceType: PieceType) => {
+    switch (pieceType) {
+      case 'queen': return <Queen className="h-6 w-6" />;
+      case 'rook': return <Rook className="h-6 w-6" />;
+      case 'bishop': return <Bishop className="h-6 w-6" />;
+      case 'knight': return <ChessKnight className="h-6 w-6" />;
+      default: return null;
     }
   };
   
@@ -235,7 +272,12 @@ const ChessBoard = ({
       </div>
       
       {/* Pawn Promotion Dialog */}
-      <Dialog open={promotionPosition !== null} onOpenChange={(open) => !open && setPromotionPosition(null)}>
+      <Dialog open={promotionPosition !== null} onOpenChange={(open) => {
+        if (!open) {
+          setPromotionPosition(null);
+          setPendingPromotion(null);
+        }
+      }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Promote Pawn</DialogTitle>
@@ -245,17 +287,19 @@ const ChessBoard = ({
           </DialogHeader>
           
           <div className="flex flex-col gap-4 py-4">
-            <Select value={promotionSelectValue} onValueChange={(value) => setPromotionSelectValue(value as PieceType)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select piece to promote to" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="queen">Queen</SelectItem>
-                <SelectItem value="rook">Rook</SelectItem>
-                <SelectItem value="bishop">Bishop</SelectItem>
-                <SelectItem value="knight">Knight</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="grid grid-cols-4 gap-2">
+              {['queen', 'rook', 'bishop', 'knight'].map((piece) => (
+                <div 
+                  key={piece}
+                  onClick={() => setPromotionSelectValue(piece as PieceType)}
+                  className={`flex flex-col items-center justify-center p-2 rounded-md cursor-pointer transition-colors
+                    ${promotionSelectValue === piece ? 'bg-primary/20 border border-primary' : 'hover:bg-muted'}`}
+                >
+                  {renderPieceIcon(piece as PieceType)}
+                  <span className="text-sm mt-1 capitalize">{piece}</span>
+                </div>
+              ))}
+            </div>
             
             <Button onClick={handlePromotionConfirm}>Confirm</Button>
           </div>

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import ChessBoard from './ChessBoard';
 import { 
@@ -101,6 +102,8 @@ const ChessGame = () => {
   
   // Handle pawn promotion
   const handlePromotion = (position: Position, newType: PieceType) => {
+    console.log("Promoting pawn at", position, "to", newType);
+    
     // Create a copy of the current board
     const newBoard = gameState.board.map(row => [...row]);
     
@@ -108,12 +111,16 @@ const ChessGame = () => {
     const piece = newBoard[position.row][position.col];
     
     if (piece && piece.type === 'pawn') {
+      console.log("Found pawn to promote", piece);
+      
       // Replace the pawn with the promoted piece
       newBoard[position.row][position.col] = {
         type: newType,
         color: piece.color,
         hasMoved: true
       };
+      
+      console.log("New board after promotion:", newBoard[position.row][position.col]);
       
       // Update the game state with the new board
       setGameState(prevState => ({
@@ -143,54 +150,48 @@ const ChessGame = () => {
       // Apply the move to the board
       const newBoard = gameState.board.map(row => [...row]);
       
-      // If not a promotion (those are handled separately)
+      // Remove piece from original position
+      newBoard[from.row][from.col] = null;
+      
+      // For promotions, we just move the pawn initially
+      // The actual promotion happens in handlePromotion
       if (!isPromotion) {
-        // Remove piece from original position
-        newBoard[from.row][from.col] = null;
-        
-        // Place piece at new position
+        // Place piece at new position for non-promotion moves
         newBoard[to.row][to.col] = { ...piece, hasMoved: true };
-        
-        // Handle castling - move the rook too
-        if (isCastling && castlingSide) {
-          if (castlingSide === 'kingside') {
-            // Move rook from h-file to f-file
-            const rookFromCol = 7;
-            const rookToCol = 5;
-            newBoard[from.row][rookToCol] = { ...newBoard[from.row][rookFromCol]!, hasMoved: true };
-            newBoard[from.row][rookFromCol] = null;
-          } else { // queenside
-            // Move rook from a-file to d-file
-            const rookFromCol = 0;
-            const rookToCol = 3;
-            newBoard[from.row][rookToCol] = { ...newBoard[from.row][rookFromCol]!, hasMoved: true };
-            newBoard[from.row][rookFromCol] = null;
-          }
-        }
-        
-        // Handle en passant - remove the captured pawn
-        if (isEnPassant) {
-          const captureRow = piece.color === 'white' ? to.row + 1 : to.row - 1;
-          newBoard[captureRow][to.col] = null;
-        }
-        
-        // Update the board in game state
-        setGameState(prevState => ({
-          ...prevState,
-          board: newBoard
-        }));
       } else {
-        // For promotions, we move the pawn but don't change its type yet
-        // That will be handled in handlePromotion
-        newBoard[from.row][from.col] = null;
+        // For promotion moves, just place the pawn initially
+        // It will be replaced with the promoted piece in handlePromotion
         newBoard[to.row][to.col] = { ...piece, hasMoved: true };
-        
-        // Update the board in game state
-        setGameState(prevState => ({
-          ...prevState,
-          board: newBoard
-        }));
       }
+      
+      // Handle castling - move the rook too
+      if (isCastling && castlingSide) {
+        if (castlingSide === 'kingside') {
+          // Move rook from h-file to f-file
+          const rookFromCol = 7;
+          const rookToCol = 5;
+          newBoard[from.row][rookToCol] = { ...newBoard[from.row][rookFromCol]!, hasMoved: true };
+          newBoard[from.row][rookFromCol] = null;
+        } else { // queenside
+          // Move rook from a-file to d-file
+          const rookFromCol = 0;
+          const rookToCol = 3;
+          newBoard[from.row][rookToCol] = { ...newBoard[from.row][rookFromCol]!, hasMoved: true };
+          newBoard[from.row][rookFromCol] = null;
+        }
+      }
+      
+      // Handle en passant - remove the captured pawn
+      if (isEnPassant) {
+        const captureRow = piece.color === 'white' ? to.row + 1 : to.row - 1;
+        newBoard[captureRow][to.col] = null;
+      }
+      
+      // Update the board in game state
+      setGameState(prevState => ({
+        ...prevState,
+        board: newBoard
+      }));
     }
   }, [gameState.lastMove]);
   
