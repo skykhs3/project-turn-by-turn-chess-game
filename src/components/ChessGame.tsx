@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import ChessBoard from './ChessBoard';
 import { 
@@ -40,9 +39,9 @@ const ChessGame = () => {
     capturedPiece: ChessPiece | null,
     isPromotion: boolean,
     isCastling: boolean,
-    castlingSide?: 'kingside' | 'queenside',
     isEnPassant: boolean,
-    enPassantTarget: Position | null
+    enPassantTarget: Position | null,
+    castlingSide?: 'kingside' | 'queenside'
   ) => {
     // Get the piece that moved
     const piece = gameState.board[from.row][from.col];

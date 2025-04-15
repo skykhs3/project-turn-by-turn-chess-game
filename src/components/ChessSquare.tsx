@@ -8,6 +8,7 @@ interface ChessSquareProps {
   isSelected: boolean;
   isValidMove: boolean;
   isLastMove: boolean;
+  isEnPassant: boolean;
   onClick: () => void;
 }
 
@@ -17,6 +18,7 @@ const ChessSquare = ({
   isSelected,
   isValidMove,
   isLastMove,
+  isEnPassant,
   onClick,
 }: ChessSquareProps) => {
   const { row, col } = position;
@@ -30,7 +32,8 @@ const ChessSquare = ({
         isLight ? 'bg-chess-light-square' : 'bg-chess-dark-square',
         isSelected && 'bg-chess-selected',
         isValidMove && 'cursor-pointer',
-        isLastMove && 'bg-chess-last-move'
+        isLastMove && 'bg-chess-last-move',
+        isEnPassant && 'bg-yellow-100'
       )}
       onClick={onClick}
       data-position={`${row},${col}`}
@@ -66,6 +69,11 @@ const ChessSquare = ({
       {/* Valid capture indicator */}
       {isValidMove && piece && (
         <div className="absolute inset-0 border-2 border-chess-valid-move rounded-sm"></div>
+      )}
+      
+      {/* En passant indicator */}
+      {isEnPassant && isValidMove && (
+        <div className="absolute w-1/4 h-1/4 rounded-full bg-yellow-400"></div>
       )}
     </div>
   );

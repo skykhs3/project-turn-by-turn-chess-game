@@ -40,9 +40,9 @@ interface ChessBoardProps {
     capturedPiece: ChessPiece | null, 
     isPromotion: boolean,
     isCastling: boolean,
-    castlingSide?: 'kingside' | 'queenside',
     isEnPassant: boolean,
-    enPassantTarget: Position | null
+    enPassantTarget: Position | null,
+    castlingSide?: 'kingside' | 'queenside'
   ) => void;
   onPromotion: (position: Position, newType: PieceType) => void;
   lastMove: { from: Position; to: Position } | null;
