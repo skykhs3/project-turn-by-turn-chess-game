@@ -164,9 +164,31 @@ const ChessBoard = ({
   };
   
   const handlePromotionConfirm = () => {
-    if (promotionPosition) {
+    if (promotionPosition && selectedSquare) {
+      // Call the onMove function first with isPromotion set to true
+      const { 
+        capturedPiece, 
+        isEnPassant,
+        enPassantTarget: newEnPassantTarget
+      } = applyMove(gameState, selectedSquare, promotionPosition);
+      
+      onMove(
+        selectedSquare, 
+        promotionPosition, 
+        capturedPiece, 
+        true, // isPromotion
+        false, // isCastling
+        isEnPassant,
+        newEnPassantTarget
+      );
+      
+      // Then call onPromotion to update the piece
       onPromotion(promotionPosition, promotionSelectValue);
+      
+      // Reset states
+      setSelectedSquare(null);
       setPromotionPosition(null);
+      
       toast(`Pawn promoted to ${promotionSelectValue}`);
     }
   };

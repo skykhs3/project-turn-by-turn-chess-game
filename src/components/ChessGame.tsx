@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import ChessBoard from './ChessBoard';
 import { 
@@ -149,25 +150,38 @@ const ChessGame = () => {
   
   // Handle pawn promotion
   const handlePromotion = (position: Position, newType: PieceType) => {
-    // Update the board with the promoted piece
-    const newBoard = promotePawn(gameState.board, position, newType);
+    // Create a copy of the current board
+    const newBoard = gameState.board.map(row => [...row]);
     
-    setGameState(prevState => ({
-      ...prevState,
-      board: newBoard,
-      currentPlayer: prevState.currentPlayer === 'white' ? 'black' : 'white'
-    }));
+    // Get the piece at the promotion position
+    const piece = newBoard[position.row][position.col];
     
-    // Update the last move in the history to include promotion info
-    if (moveHistory.length > 0) {
-      const lastMoveIndex = moveHistory.length - 1;
-      const updatedMoves = [...moveHistory];
-      updatedMoves[lastMoveIndex] = {
-        ...updatedMoves[lastMoveIndex],
-        isPromotion: true,
-        promotedTo: newType
+    if (piece && piece.type === 'pawn') {
+      // Replace the pawn with the promoted piece
+      newBoard[position.row][position.col] = {
+        type: newType,
+        color: piece.color,
+        hasMoved: true
       };
-      setMoveHistory(updatedMoves);
+      
+      // Update the game state with the new board
+      setGameState(prevState => ({
+        ...prevState,
+        board: newBoard,
+        currentPlayer: prevState.currentPlayer === 'white' ? 'black' : 'white'
+      }));
+      
+      // Update the last move in the history to include promotion info
+      if (moveHistory.length > 0) {
+        const lastMoveIndex = moveHistory.length - 1;
+        const updatedMoves = [...moveHistory];
+        updatedMoves[lastMoveIndex] = {
+          ...updatedMoves[lastMoveIndex],
+          isPromotion: true,
+          promotedTo: newType
+        };
+        setMoveHistory(updatedMoves);
+      }
     }
   };
   
