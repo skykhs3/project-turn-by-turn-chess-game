@@ -10,15 +10,21 @@ import {
   Move,
   positionToNotation,
   PieceType,
-  promotePawn
+  promotePawn,
+  GameState
 } from '@/lib/chess-utils';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 const ChessGame = () => {
   // Game state
-  const [board, setBoard] = useState<ChessBoardType>(initializeBoard());
-  const [currentPlayer, setCurrentPlayer] = useState<PieceColor>('white');
+  const [gameState, setGameState] = useState<GameState>({
+    board: initializeBoard(),
+    currentPlayer: 'white',
+    lastMove: null,
+    enPassantTarget: null
+  });
+  
   const [moveHistory, setMoveHistory] = useState<Move[]>([]);
   const [lastMove, setLastMove] = useState<{ from: Position; to: Position } | null>(null);
   const [capturedPieces, setCapturedPieces] = useState<{
@@ -28,22 +34,47 @@ const ChessGame = () => {
   const [winner, setWinner] = useState<PieceColor | null>(null);
   
   // Handle player move
-  const handleMove = (from: Position, to: Position, capturedPiece: ChessPiece | null) => {
-    // Update the board
-    const piece = board[from.row][from.col];
-    const newBoard = board.map(row => [...row]);
+  const handleMove = (
+    from: Position, 
+    to: Position, 
+    capturedPiece: ChessPiece | null,
+    isPromotion: boolean,
+    isCastling: boolean,
+    castlingSide?: 'kingside' | 'queenside',
+    isEnPassant: boolean,
+    enPassantTarget: Position | null
+  ) => {
+    // Get the piece that moved
+    const piece = gameState.board[from.row][from.col];
+    if (!piece) return;
     
-    newBoard[to.row][to.col] = piece;
-    newBoard[from.row][from.col] = null;
-    
-    setBoard(newBoard);
+    // Create a new game state
+    setGameState(prevState => ({
+      board: prevState.board.map(row => [...row]),  // Make a copy of the board
+      currentPlayer: prevState.currentPlayer === 'white' ? 'black' : 'white',
+      lastMove: {
+        from,
+        to,
+        piece: { ...piece },
+        capturedPiece: capturedPiece ? { ...capturedPiece } : undefined,
+        isPromotion,
+        isCastling,
+        castlingSide,
+        isEnPassant
+      },
+      enPassantTarget
+    }));
     
     // Record the move
     const move: Move = {
       from,
       to,
-      piece: { ...piece! }, // Clone the piece object
+      piece: { ...piece },
       capturedPiece: capturedPiece ? { ...capturedPiece } : undefined,
+      isPromotion,
+      isCastling,
+      castlingSide,
+      isEnPassant
     };
     
     setMoveHistory([...moveHistory, move]);
@@ -61,24 +92,72 @@ const ChessGame = () => {
       
       // Check if a king was captured (game over)
       if (capturedPiece.type === 'king') {
-        setWinner(currentPlayer);
-        toast(`${currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1)} wins the game by capturing the king!`, {
+        setWinner(gameState.currentPlayer);
+        toast(`${gameState.currentPlayer.charAt(0).toUpperCase() + gameState.currentPlayer.slice(1)} wins the game by capturing the king!`, {
           duration: 5000
         });
       }
     }
-    
-    // Switch players if game is not over
-    if (!capturedPiece || capturedPiece.type !== 'king') {
-      setCurrentPlayer(currentPlayer === 'white' ? 'black' : 'white');
-    }
   };
+  
+  // Effect to apply the moves to the board
+  useEffect(() => {
+    if (gameState.lastMove) {
+      const { from, to, piece, isPromotion, isCastling, castlingSide, isEnPassant } = gameState.lastMove;
+      
+      // Apply the move to the board
+      const newBoard = gameState.board.map(row => [...row]);
+      
+      // If not a promotion (those are handled separately)
+      if (!isPromotion) {
+        // Remove piece from original position
+        newBoard[from.row][from.col] = null;
+        
+        // Place piece at new position
+        newBoard[to.row][to.col] = { ...piece, hasMoved: true };
+        
+        // Handle castling - move the rook too
+        if (isCastling && castlingSide) {
+          if (castlingSide === 'kingside') {
+            // Move rook from h-file to f-file
+            const rookFromCol = 7;
+            const rookToCol = 5;
+            newBoard[from.row][rookToCol] = { ...newBoard[from.row][rookFromCol]!, hasMoved: true };
+            newBoard[from.row][rookFromCol] = null;
+          } else { // queenside
+            // Move rook from a-file to d-file
+            const rookFromCol = 0;
+            const rookToCol = 3;
+            newBoard[from.row][rookToCol] = { ...newBoard[from.row][rookFromCol]!, hasMoved: true };
+            newBoard[from.row][rookFromCol] = null;
+          }
+        }
+        
+        // Handle en passant - remove the captured pawn
+        if (isEnPassant) {
+          const captureRow = piece.color === 'white' ? to.row + 1 : to.row - 1;
+          newBoard[captureRow][to.col] = null;
+        }
+        
+        // Update the board in game state
+        setGameState(prevState => ({
+          ...prevState,
+          board: newBoard
+        }));
+      }
+    }
+  }, [gameState.lastMove]);
   
   // Handle pawn promotion
   const handlePromotion = (position: Position, newType: PieceType) => {
     // Update the board with the promoted piece
-    const newBoard = promotePawn(board, position, newType);
-    setBoard(newBoard);
+    const newBoard = promotePawn(gameState.board, position, newType);
+    
+    setGameState(prevState => ({
+      ...prevState,
+      board: newBoard,
+      currentPlayer: prevState.currentPlayer === 'white' ? 'black' : 'white'
+    }));
     
     // Update the last move in the history to include promotion info
     if (moveHistory.length > 0) {
@@ -91,15 +170,16 @@ const ChessGame = () => {
       };
       setMoveHistory(updatedMoves);
     }
-    
-    // Switch players
-    setCurrentPlayer(currentPlayer === 'white' ? 'black' : 'white');
   };
   
   // Reset the game
   const resetGame = () => {
-    setBoard(initializeBoard());
-    setCurrentPlayer('white');
+    setGameState({
+      board: initializeBoard(),
+      currentPlayer: 'white',
+      lastMove: null,
+      enPassantTarget: null
+    });
     setMoveHistory([]);
     setLastMove(null);
     setCapturedPieces({ white: [], black: [] });
@@ -118,15 +198,14 @@ const ChessGame = () => {
             </h2>
           ) : (
             <h2 className="text-xl font-bold">
-              <span className={`inline-block w-3 h-3 rounded-full mr-2 ${currentPlayer === 'white' ? 'bg-white border border-gray-300' : 'bg-black'}`}></span>
-              {currentPlayer === 'white' ? 'White' : 'Black'}'s Turn
+              <span className={`inline-block w-3 h-3 rounded-full mr-2 ${gameState.currentPlayer === 'white' ? 'bg-white border border-gray-300' : 'bg-black'}`}></span>
+              {gameState.currentPlayer === 'white' ? 'White' : 'Black'}'s Turn
             </h2>
           )}
           <Button onClick={resetGame} variant="outline">New Game</Button>
         </div>
         <ChessBoard 
-          board={board} 
-          currentPlayer={currentPlayer} 
+          gameState={gameState}
           onMove={handleMove} 
           onPromotion={handlePromotion}
           lastMove={lastMove}
@@ -181,14 +260,25 @@ const ChessGame = () => {
                 {moveHistory.map((move, index) => {
                   const from = positionToNotation(move.from);
                   const to = positionToNotation(move.to);
-                  const pieceSymbol = move.piece.type.charAt(0).toUpperCase();
-                  const captureSymbol = move.capturedPiece ? 'x' : '-';
-                  const promotionText = move.isPromotion ? `=${move.promotedTo?.charAt(0).toUpperCase()}` : '';
+                  
+                  let notation = '';
+                  
+                  // Special case for castling
+                  if (move.isCastling) {
+                    notation = move.castlingSide === 'kingside' ? 'O-O' : 'O-O-O';
+                  } else {
+                    const pieceSymbol = move.piece.type === 'pawn' ? '' : move.piece.type.charAt(0).toUpperCase();
+                    const captureSymbol = move.capturedPiece || move.isEnPassant ? 'x' : '-';
+                    const promotionText = move.isPromotion ? `=${move.promotedTo?.charAt(0).toUpperCase()}` : '';
+                    const enPassantText = move.isEnPassant ? ' e.p.' : '';
+                    
+                    notation = `${pieceSymbol}${from}${captureSymbol}${to}${promotionText}${enPassantText}`;
+                  }
                   
                   return (
                     <li key={index} className="text-sm mb-1">
                       <span className={move.piece.color === 'white' ? 'text-black' : 'text-gray-700'}>
-                        {Math.floor(index/2) + 1}.{move.piece.color === 'black' ? '..' : ''} {pieceSymbol}{from}{captureSymbol}{to}{promotionText}
+                        {Math.floor(index/2) + 1}.{move.piece.color === 'black' ? '..' : ''} {notation}
                       </span>
                     </li>
                   );

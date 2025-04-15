@@ -1,3 +1,4 @@
+
 // Types for chess pieces and board state
 export type PieceType = 'pawn' | 'knight' | 'bishop' | 'rook' | 'queen' | 'king';
 export type PieceColor = 'white' | 'black';
@@ -21,6 +22,7 @@ export interface Move {
   isPromotion?: boolean;
   promotedTo?: PieceType;
   isCastling?: boolean;
+  castlingSide?: 'kingside' | 'queenside';
   isEnPassant?: boolean;
 }
 
@@ -32,46 +34,54 @@ export const initializeBoard = (): ChessBoard => {
   
   // Place pawns
   for (let col = 0; col < 8; col++) {
-    board[1][col] = { type: 'pawn', color: 'black' };
-    board[6][col] = { type: 'pawn', color: 'white' };
+    board[1][col] = { type: 'pawn', color: 'black', hasMoved: false };
+    board[6][col] = { type: 'pawn', color: 'white', hasMoved: false };
   }
   
   // Place rooks
-  board[0][0] = { type: 'rook', color: 'black' };
-  board[0][7] = { type: 'rook', color: 'black' };
-  board[7][0] = { type: 'rook', color: 'white' };
-  board[7][7] = { type: 'rook', color: 'white' };
+  board[0][0] = { type: 'rook', color: 'black', hasMoved: false };
+  board[0][7] = { type: 'rook', color: 'black', hasMoved: false };
+  board[7][0] = { type: 'rook', color: 'white', hasMoved: false };
+  board[7][7] = { type: 'rook', color: 'white', hasMoved: false };
   
   // Place knights
-  board[0][1] = { type: 'knight', color: 'black' };
-  board[0][6] = { type: 'knight', color: 'black' };
-  board[7][1] = { type: 'knight', color: 'white' };
-  board[7][6] = { type: 'knight', color: 'white' };
+  board[0][1] = { type: 'knight', color: 'black', hasMoved: false };
+  board[0][6] = { type: 'knight', color: 'black', hasMoved: false };
+  board[7][1] = { type: 'knight', color: 'white', hasMoved: false };
+  board[7][6] = { type: 'knight', color: 'white', hasMoved: false };
   
   // Place bishops
-  board[0][2] = { type: 'bishop', color: 'black' };
-  board[0][5] = { type: 'bishop', color: 'black' };
-  board[7][2] = { type: 'bishop', color: 'white' };
-  board[7][5] = { type: 'bishop', color: 'white' };
+  board[0][2] = { type: 'bishop', color: 'black', hasMoved: false };
+  board[0][5] = { type: 'bishop', color: 'black', hasMoved: false };
+  board[7][2] = { type: 'bishop', color: 'white', hasMoved: false };
+  board[7][5] = { type: 'bishop', color: 'white', hasMoved: false };
   
   // Place queens
-  board[0][3] = { type: 'queen', color: 'black' };
-  board[7][3] = { type: 'queen', color: 'white' };
+  board[0][3] = { type: 'queen', color: 'black', hasMoved: false };
+  board[7][3] = { type: 'queen', color: 'white', hasMoved: false };
   
   // Place kings
-  board[0][4] = { type: 'king', color: 'black' };
-  board[7][4] = { type: 'king', color: 'white' };
+  board[0][4] = { type: 'king', color: 'black', hasMoved: false };
+  board[7][4] = { type: 'king', color: 'white', hasMoved: false };
   
   return board;
 };
 
+// Track the last moved pawn for en passant
+export interface GameState {
+  board: ChessBoard;
+  currentPlayer: PieceColor;
+  lastMove: Move | null;
+  enPassantTarget: Position | null;
+}
+
 // Chess move validation
 export const isValidMove = (
-  board: ChessBoard,
+  gameState: GameState,
   from: Position,
-  to: Position,
-  currentPlayer: PieceColor
+  to: Position
 ): boolean => {
+  const { board, currentPlayer, enPassantTarget } = gameState;
   const piece = board[from.row][from.col];
   
   // Check if there's a piece at the starting position
@@ -87,7 +97,7 @@ export const isValidMove = (
   // Check specific movement rules for each piece type
   switch (piece.type) {
     case 'pawn':
-      return isValidPawnMove(board, from, to, piece.color);
+      return isValidPawnMove(gameState, from, to);
     case 'knight':
       return isValidKnightMove(from, to);
     case 'bishop':
@@ -97,7 +107,7 @@ export const isValidMove = (
     case 'queen':
       return isValidQueenMove(board, from, to);
     case 'king':
-      return isValidKingMove(board, from, to);
+      return isValidKingMove(gameState, from, to);
     default:
       return false;
   }
@@ -105,11 +115,15 @@ export const isValidMove = (
 
 // Helper functions for specific piece move validation
 const isValidPawnMove = (
-  board: ChessBoard,
+  gameState: GameState,
   from: Position,
-  to: Position,
-  color: PieceColor
+  to: Position
 ): boolean => {
+  const { board, enPassantTarget } = gameState;
+  const piece = board[from.row][from.col];
+  if (!piece || piece.type !== 'pawn') return false;
+  
+  const color = piece.color;
   const direction = color === 'white' ? -1 : 1;
   const startRow = color === 'white' ? 6 : 1;
   
@@ -133,7 +147,7 @@ const isValidPawnMove = (
     return true;
   }
   
-  // Capture
+  // Regular capture
   if (
     Math.abs(from.col - to.col) === 1 &&
     to.row === from.row + direction &&
@@ -143,7 +157,16 @@ const isValidPawnMove = (
     return true;
   }
   
-  // TODO: En passant and promotion
+  // En passant capture
+  if (
+    enPassantTarget &&
+    Math.abs(from.col - to.col) === 1 &&
+    to.row === from.row + direction &&
+    to.row === enPassantTarget.row &&
+    to.col === enPassantTarget.col
+  ) {
+    return true;
+  }
   
   return false;
 };
@@ -225,33 +248,75 @@ const isValidQueenMove = (
 };
 
 const isValidKingMove = (
-  board: ChessBoard,
+  gameState: GameState,
   from: Position,
   to: Position
 ): boolean => {
+  const { board } = gameState;
+  const piece = board[from.row][from.col];
+  if (!piece || piece.type !== 'king') return false;
+  
   const rowDiff = Math.abs(from.row - to.row);
   const colDiff = Math.abs(from.col - to.col);
   
   // Regular king move (one square in any direction)
   if (rowDiff <= 1 && colDiff <= 1) return true;
   
-  // TODO: Castling
+  // Castling
+  if (rowDiff === 0 && colDiff === 2) {
+    // King hasn't moved yet
+    if (piece.hasMoved) return false;
+    
+    const kingsideCol = 6;
+    const queensideCol = 2;
+    
+    // Kingside castling
+    if (to.col === kingsideCol) {
+      const rookPos = { row: from.row, col: 7 };
+      const rook = board[rookPos.row][rookPos.col];
+      
+      // Check if there's a rook that hasn't moved
+      if (!rook || rook.type !== 'rook' || rook.color !== piece.color || rook.hasMoved) return false;
+      
+      // Check if path is clear
+      for (let col = from.col + 1; col < rookPos.col; col++) {
+        if (board[from.row][col]) return false;
+      }
+      
+      return true;
+    }
+    
+    // Queenside castling
+    if (to.col === queensideCol) {
+      const rookPos = { row: from.row, col: 0 };
+      const rook = board[rookPos.row][rookPos.col];
+      
+      // Check if there's a rook that hasn't moved
+      if (!rook || rook.type !== 'rook' || rook.color !== piece.color || rook.hasMoved) return false;
+      
+      // Check if path is clear
+      for (let col = from.col - 1; col > rookPos.col; col--) {
+        if (board[from.row][col]) return false;
+      }
+      
+      return true;
+    }
+  }
   
   return false;
 };
 
 // Function to get all valid moves for a given position
 export const getValidMoves = (
-  board: ChessBoard,
-  position: Position,
-  currentPlayer: PieceColor
+  gameState: GameState,
+  position: Position
 ): Position[] => {
   const validMoves: Position[] = [];
   
   for (let row = 0; row < 8; row++) {
     for (let col = 0; col < 8; col++) {
       const to = { row, col };
-      if (isValidMove(board, position, to, currentPlayer)) {
+      if (isValidMove(gameState, position, to)) {
         validMoves.push(to);
       }
     }
@@ -269,29 +334,105 @@ export const isPawnPromotion = (position: Position, piece: ChessPiece): boolean 
          (piece.color === 'black' && position.row === 7);
 };
 
-// Function to apply a move to the board
-export const applyMove = (board: ChessBoard, from: Position, to: Position): { 
-  newBoard: ChessBoard, 
-  capturedPiece: ChessPiece | null,
-  isPromotion: boolean 
-} => {
-  const newBoard = board.map(row => [...row]);
-  const piece = newBoard[from.row][from.col];
-  const capturedPiece = newBoard[to.row][to.col];
+// Function to detect if a move is castling
+export const isCastlingMove = (from: Position, to: Position, piece: ChessPiece): { isCastling: boolean, side?: 'kingside' | 'queenside' } => {
+  if (piece.type !== 'king') return { isCastling: false };
   
-  // Move the piece
-  newBoard[to.row][to.col] = piece;
-  newBoard[from.row][from.col] = null;
-  
-  // Mark the piece as moved (important for pawns, kings, and rooks)
-  if (piece) {
-    piece.hasMoved = true;
+  // Kings move two squares horizontally for castling
+  if (Math.abs(from.col - to.col) === 2 && from.row === to.row) {
+    const side = to.col > from.col ? 'kingside' : 'queenside';
+    return { isCastling: true, side };
   }
   
-  // Check if this is a pawn promotion move
-  const isPromotion = piece && isPawnPromotion(to, piece);
+  return { isCastling: false };
+};
+
+// Function to detect if a move is en passant
+export const isEnPassantMove = (
+  from: Position, 
+  to: Position, 
+  piece: ChessPiece, 
+  enPassantTarget: Position | null
+): boolean => {
+  if (!enPassantTarget || piece.type !== 'pawn') return false;
   
-  return { newBoard, capturedPiece: capturedPiece || null, isPromotion };
+  // Check if the pawn is moving to the en passant target square
+  return to.row === enPassantTarget.row && to.col === enPassantTarget.col;
+};
+
+// Function to apply a move to the board
+export const applyMove = (
+  gameState: GameState, 
+  from: Position, 
+  to: Position
+): { 
+  newBoard: ChessBoard, 
+  capturedPiece: ChessPiece | null,
+  isPromotion: boolean,
+  isCastling: boolean,
+  castlingSide?: 'kingside' | 'queenside',
+  isEnPassant: boolean,
+  enPassantTarget: Position | null
+} => {
+  const { board, enPassantTarget } = gameState;
+  const newBoard = board.map(row => [...row]);
+  const piece = { ...newBoard[from.row][from.col]! };  // Clone the piece
+  const capturedPiece = newBoard[to.row][to.col] ? { ...newBoard[to.row][to.col]! } : null;
+  
+  // Check for special moves
+  const isPromotion = isPawnPromotion(to, piece);
+  const { isCastling, side: castlingSide } = isCastlingMove(from, to, piece);
+  const isEnPassant = isEnPassantMove(from, to, piece, enPassantTarget);
+  
+  // Regular move
+  newBoard[to.row][to.col] = { ...piece, hasMoved: true };
+  newBoard[from.row][from.col] = null;
+  
+  // Handle castling
+  if (isCastling && castlingSide) {
+    // Move the rook too
+    if (castlingSide === 'kingside') {
+      // Move rook from h-file to f-file
+      const rookFromCol = 7;
+      const rookToCol = 5;
+      newBoard[from.row][rookToCol] = { ...newBoard[from.row][rookFromCol]!, hasMoved: true };
+      newBoard[from.row][rookFromCol] = null;
+    } else { // queenside
+      // Move rook from a-file to d-file
+      const rookFromCol = 0;
+      const rookToCol = 3;
+      newBoard[from.row][rookToCol] = { ...newBoard[from.row][rookFromCol]!, hasMoved: true };
+      newBoard[from.row][rookFromCol] = null;
+    }
+  }
+  
+  // Handle en passant capture
+  let capturedEnPassantPiece = null;
+  if (isEnPassant) {
+    // Remove the captured pawn (which is one square behind the landing square)
+    const captureRow = piece.color === 'white' ? to.row + 1 : to.row - 1;
+    capturedEnPassantPiece = newBoard[captureRow][to.col];
+    newBoard[captureRow][to.col] = null;
+  }
+  
+  // Set en passant target for the next move
+  let newEnPassantTarget: Position | null = null;
+  
+  // If a pawn moves two squares, set the en passant target
+  if (piece.type === 'pawn' && Math.abs(from.row - to.row) === 2) {
+    const enPassantRow = piece.color === 'white' ? from.row - 1 : from.row + 1;
+    newEnPassantTarget = { row: enPassantRow, col: from.col };
+  }
+  
+  return { 
+    newBoard, 
+    capturedPiece: capturedEnPassantPiece || capturedPiece, 
+    isPromotion,
+    isCastling,
+    castlingSide,
+    isEnPassant,
+    enPassantTarget: newEnPassantTarget
+  };
 };
 
 // Function to promote a pawn to a new piece type

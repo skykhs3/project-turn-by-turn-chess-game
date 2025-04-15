@@ -11,7 +11,8 @@ import {
   PieceColor,
   isPawnPromotion,
   promotePawn,
-  PieceType
+  PieceType,
+  GameState
 } from '@/lib/chess-utils';
 import ChessSquare from './ChessSquare';
 import { toast } from 'sonner';
@@ -32,22 +33,30 @@ import {
 } from '@/components/ui/dialog';
 
 interface ChessBoardProps {
-  board: ChessBoardType;
-  currentPlayer: PieceColor;
-  onMove: (from: Position, to: Position, capturedPiece: ChessPiece | null) => void;
+  gameState: GameState;
+  onMove: (
+    from: Position, 
+    to: Position, 
+    capturedPiece: ChessPiece | null, 
+    isPromotion: boolean,
+    isCastling: boolean,
+    castlingSide?: 'kingside' | 'queenside',
+    isEnPassant: boolean,
+    enPassantTarget: Position | null
+  ) => void;
   onPromotion: (position: Position, newType: PieceType) => void;
   lastMove: { from: Position; to: Position } | null;
   gameOver?: boolean;
 }
 
 const ChessBoard = ({ 
-  board, 
-  currentPlayer, 
+  gameState, 
   onMove, 
   onPromotion,
   lastMove, 
   gameOver = false 
 }: ChessBoardProps) => {
+  const { board, currentPlayer, enPassantTarget } = gameState;
   const [selectedSquare, setSelectedSquare] = useState<Position | null>(null);
   const [validMoves, setValidMoves] = useState<Position[]>([]);
   const [promotionPosition, setPromotionPosition] = useState<Position | null>(null);
@@ -56,12 +65,12 @@ const ChessBoard = ({
   // Update valid moves when a square is selected
   useEffect(() => {
     if (selectedSquare) {
-      const moves = getValidMoves(board, selectedSquare, currentPlayer);
+      const moves = getValidMoves(gameState, selectedSquare);
       setValidMoves(moves);
     } else {
       setValidMoves([]);
     }
-  }, [selectedSquare, board, currentPlayer]);
+  }, [selectedSquare, gameState]);
   
   const handleSquareClick = (position: Position) => {
     // Don't allow moves if game is over
@@ -91,8 +100,16 @@ const ChessBoard = ({
     
     // If another square is clicked
     // Check if it's a valid move
-    if (isValidMove(board, selectedSquare, position, currentPlayer)) {
-      const { newBoard, capturedPiece, isPromotion } = applyMove(board, selectedSquare, position);
+    if (isValidMove(gameState, selectedSquare, position)) {
+      const { 
+        newBoard, 
+        capturedPiece, 
+        isPromotion,
+        isCastling,
+        castlingSide,
+        isEnPassant,
+        enPassantTarget: newEnPassantTarget
+      } = applyMove(gameState, selectedSquare, position);
       
       // Handle promotion
       if (isPromotion) {
@@ -101,7 +118,16 @@ const ChessBoard = ({
       }
       
       // Call the onMove callback to update the game state
-      onMove(selectedSquare, position, capturedPiece);
+      onMove(
+        selectedSquare, 
+        position, 
+        capturedPiece, 
+        isPromotion, 
+        isCastling, 
+        castlingSide, 
+        isEnPassant,
+        newEnPassantTarget
+      );
       
       // Reset selection
       setSelectedSquare(null);
@@ -109,8 +135,22 @@ const ChessBoard = ({
       // Show move notification
       const from = positionToNotation(selectedSquare);
       const to = positionToNotation(position);
-      const captureText = capturedPiece ? ` and captured ${capturedPiece.color}'s ${capturedPiece.type}` : '';
-      toast(`Moved from ${from} to ${to}${captureText}`);
+      
+      let moveDescription = `Moved from ${from} to ${to}`;
+      
+      if (capturedPiece) {
+        moveDescription += ` and captured ${capturedPiece.color}'s ${capturedPiece.type}`;
+      }
+      
+      if (isCastling) {
+        moveDescription = `Castled ${castlingSide}`;
+      }
+      
+      if (isEnPassant) {
+        moveDescription = `En passant capture from ${from} to ${to}`;
+      }
+      
+      toast(moveDescription);
     } 
     // If it's another piece of the same color, select it instead
     else if (piece && piece.color === currentPlayer) {
@@ -154,6 +194,7 @@ const ChessBoard = ({
           const isSelected = selectedSquare?.row === row && selectedSquare?.col === col;
           const isValidMoveSquare = isValidMovePosition(position);
           const isLastMove = isLastMovePosition(position);
+          const isEnPassantSquare = enPassantTarget && enPassantTarget.row === row && enPassantTarget.col === col;
           
           return (
             <ChessSquare
@@ -163,6 +204,7 @@ const ChessBoard = ({
               isSelected={isSelected}
               isValidMove={isValidMoveSquare && !gameOver}
               isLastMove={isLastMove}
+              isEnPassant={isEnPassantSquare}
               onClick={() => handleSquareClick(position)}
             />
           );
