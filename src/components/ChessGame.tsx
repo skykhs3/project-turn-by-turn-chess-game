@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import ChessBoard from './ChessBoard';
 import { 
@@ -100,6 +99,42 @@ const ChessGame = () => {
     }
   };
   
+  // Handle pawn promotion
+  const handlePromotion = (position: Position, newType: PieceType) => {
+    // Create a copy of the current board
+    const newBoard = gameState.board.map(row => [...row]);
+    
+    // Get the piece at the promotion position
+    const piece = newBoard[position.row][position.col];
+    
+    if (piece && piece.type === 'pawn') {
+      // Replace the pawn with the promoted piece
+      newBoard[position.row][position.col] = {
+        type: newType,
+        color: piece.color,
+        hasMoved: true
+      };
+      
+      // Update the game state with the new board
+      setGameState(prevState => ({
+        ...prevState,
+        board: newBoard
+      }));
+      
+      // Update the last move in the history to include promotion info
+      if (moveHistory.length > 0) {
+        const lastMoveIndex = moveHistory.length - 1;
+        const updatedMoves = [...moveHistory];
+        updatedMoves[lastMoveIndex] = {
+          ...updatedMoves[lastMoveIndex],
+          isPromotion: true,
+          promotedTo: newType
+        };
+        setMoveHistory(updatedMoves);
+      }
+    }
+  };
+  
   // Effect to apply the moves to the board
   useEffect(() => {
     if (gameState.lastMove) {
@@ -158,42 +193,6 @@ const ChessGame = () => {
       }
     }
   }, [gameState.lastMove]);
-  
-  // Handle pawn promotion
-  const handlePromotion = (position: Position, newType: PieceType) => {
-    // Create a copy of the current board
-    const newBoard = gameState.board.map(row => [...row]);
-    
-    // Get the piece at the promotion position
-    const piece = newBoard[position.row][position.col];
-    
-    if (piece && piece.type === 'pawn') {
-      // Replace the pawn with the promoted piece
-      newBoard[position.row][position.col] = {
-        type: newType,
-        color: piece.color,
-        hasMoved: true
-      };
-      
-      // Update the game state with the new board
-      setGameState(prevState => ({
-        ...prevState,
-        board: newBoard
-      }));
-      
-      // Update the last move in the history to include promotion info
-      if (moveHistory.length > 0) {
-        const lastMoveIndex = moveHistory.length - 1;
-        const updatedMoves = [...moveHistory];
-        updatedMoves[lastMoveIndex] = {
-          ...updatedMoves[lastMoveIndex],
-          isPromotion: true,
-          promotedTo: newType
-        };
-        setMoveHistory(updatedMoves);
-      }
-    }
-  };
   
   // Reset the game
   const resetGame = () => {
