@@ -172,6 +172,7 @@ const ChessBoard = ({
         enPassantTarget: newEnPassantTarget
       } = applyMove(gameState, selectedSquare, promotionPosition);
       
+      // First call onMove to update the game state with the promotion move
       onMove(
         selectedSquare, 
         promotionPosition, 
@@ -182,7 +183,7 @@ const ChessBoard = ({
         newEnPassantTarget
       );
       
-      // Then call onPromotion to update the piece
+      // Then call onPromotion to update the piece type
       onPromotion(promotionPosition, promotionSelectValue);
       
       // Reset states

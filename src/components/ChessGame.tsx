@@ -144,6 +144,17 @@ const ChessGame = () => {
           ...prevState,
           board: newBoard
         }));
+      } else {
+        // For promotions, we move the pawn but don't change its type yet
+        // That will be handled in handlePromotion
+        newBoard[from.row][from.col] = null;
+        newBoard[to.row][to.col] = { ...piece, hasMoved: true };
+        
+        // Update the board in game state
+        setGameState(prevState => ({
+          ...prevState,
+          board: newBoard
+        }));
       }
     }
   }, [gameState.lastMove]);
@@ -167,8 +178,7 @@ const ChessGame = () => {
       // Update the game state with the new board
       setGameState(prevState => ({
         ...prevState,
-        board: newBoard,
-        currentPlayer: prevState.currentPlayer === 'white' ? 'black' : 'white'
+        board: newBoard
       }));
       
       // Update the last move in the history to include promotion info
