@@ -124,9 +124,9 @@ const ChessBoard = ({
         capturedPiece, 
         isPromotion, 
         isCastling, 
-        castlingSide, 
         isEnPassant,
-        newEnPassantTarget
+        newEnPassantTarget,
+        castlingSide
       );
       
       // Reset selection
@@ -194,7 +194,7 @@ const ChessBoard = ({
           const isSelected = selectedSquare?.row === row && selectedSquare?.col === col;
           const isValidMoveSquare = isValidMovePosition(position);
           const isLastMove = isLastMovePosition(position);
-          const isEnPassantSquare = enPassantTarget && enPassantTarget.row === row && enPassantTarget.col === col;
+          const isEnPassantSquare = !!(enPassantTarget && enPassantTarget.row === row && enPassantTarget.col === col);
           
           return (
             <ChessSquare
