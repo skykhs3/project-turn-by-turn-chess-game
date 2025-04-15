@@ -1,4 +1,5 @@
 
+import React from 'react';
 import ChessGame from '@/components/ChessGame';
 import { Toaster } from 'sonner';
 
