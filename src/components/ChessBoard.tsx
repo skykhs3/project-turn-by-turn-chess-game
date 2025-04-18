@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { 
   ChessBoard as ChessBoardType, 
@@ -31,7 +30,7 @@ import {
   DialogTitle, 
   DialogDescription 
 } from '@/components/ui/dialog';
-import { Queen, Rook, Bishop, ChessKnight } from 'lucide-react';
+import { Crown, Castle, ArrowUpToLine, Horse } from 'lucide-react';
 
 interface ChessBoardProps {
   gameState: GameState;
@@ -70,7 +69,6 @@ const ChessBoard = ({
     enPassantTarget: Position | null;
   } | null>(null);
   
-  // Update valid moves when a square is selected
   useEffect(() => {
     if (selectedSquare) {
       const moves = getValidMoves(gameState, selectedSquare);
@@ -81,7 +79,6 @@ const ChessBoard = ({
   }, [selectedSquare, gameState]);
   
   const handleSquareClick = (position: Position) => {
-    // Don't allow moves if game is over
     if (gameOver) {
       toast('Game over! Start a new game.');
       return;
@@ -89,9 +86,7 @@ const ChessBoard = ({
     
     const piece = board[position.row][position.col];
     
-    // If no square is selected yet
     if (!selectedSquare) {
-      // Only allow selecting pieces of the current player's color
       if (piece && piece.color === currentPlayer) {
         setSelectedSquare(position);
       } else if (piece) {
@@ -100,18 +95,14 @@ const ChessBoard = ({
       return;
     }
     
-    // If the same square is clicked again, deselect it
     if (position.row === selectedSquare.row && position.col === selectedSquare.col) {
       setSelectedSquare(null);
       return;
     }
     
-    // If another square is clicked
-    // Check if it's a valid move
     if (isValidMove(gameState, selectedSquare, position)) {
       const selectedPiece = board[selectedSquare.row][selectedSquare.col];
       
-      // Check if it's a pawn moving to the last rank (promotion)
       if (selectedPiece?.type === 'pawn') {
         const isPromotion = (selectedPiece.color === 'white' && position.row === 0) ||
                            (selectedPiece.color === 'black' && position.row === 7);
@@ -123,7 +114,6 @@ const ChessBoard = ({
             enPassantTarget: newEnPassantTarget 
           } = applyMove(gameState, selectedSquare, position);
           
-          // Store the promotion move details for later processing
           setPendingPromotion({
             from: selectedSquare,
             to: position,
@@ -132,13 +122,11 @@ const ChessBoard = ({
             enPassantTarget: newEnPassantTarget
           });
           
-          // Show promotion dialog
           setPromotionPosition(position);
           return;
         }
       }
       
-      // Regular non-promotion move
       const { 
         capturedPiece, 
         isPromotion,
@@ -148,7 +136,6 @@ const ChessBoard = ({
         enPassantTarget: newEnPassantTarget
       } = applyMove(gameState, selectedSquare, position);
       
-      // Call the onMove callback to update the game state
       onMove(
         selectedSquare, 
         position, 
@@ -160,10 +147,8 @@ const ChessBoard = ({
         castlingSide
       );
       
-      // Reset selection
       setSelectedSquare(null);
       
-      // Show move notification
       const from = positionToNotation(selectedSquare);
       const to = positionToNotation(position);
       
@@ -183,11 +168,9 @@ const ChessBoard = ({
       
       toast(moveDescription);
     } 
-    // If it's another piece of the same color, select it instead
     else if (piece && piece.color === currentPlayer) {
       setSelectedSquare(position);
     } 
-    // If it's an invalid move
     else {
       toast('Invalid move');
       setSelectedSquare(null);
@@ -198,21 +181,18 @@ const ChessBoard = ({
     if (promotionPosition && pendingPromotion) {
       const { from, to, capturedPiece, isEnPassant, enPassantTarget: newEnPassantTarget } = pendingPromotion;
       
-      // First call onMove to update the game state with the promotion move
       onMove(
         from, 
         to, 
         capturedPiece, 
-        true, // isPromotion
-        false, // isCastling
+        true,
+        false,
         isEnPassant,
         newEnPassantTarget
       );
       
-      // Then call onPromotion to update the piece type
       onPromotion(to, promotionSelectValue);
       
-      // Reset states
       setSelectedSquare(null);
       setPromotionPosition(null);
       setPendingPromotion(null);
@@ -223,10 +203,10 @@ const ChessBoard = ({
   
   const renderPieceIcon = (pieceType: PieceType) => {
     switch (pieceType) {
-      case 'queen': return <Queen className="h-6 w-6" />;
-      case 'rook': return <Rook className="h-6 w-6" />;
-      case 'bishop': return <Bishop className="h-6 w-6" />;
-      case 'knight': return <ChessKnight className="h-6 w-6" />;
+      case 'queen': return <Crown className="h-6 w-6" />;
+      case 'rook': return <Castle className="h-6 w-6" />;
+      case 'bishop': return <ArrowUpToLine className="h-6 w-6" />;
+      case 'knight': return <Horse className="h-6 w-6" />;
       default: return null;
     }
   };
@@ -243,7 +223,6 @@ const ChessBoard = ({
     );
   };
   
-  // Render the board
   return (
     <>
       <div className="grid grid-cols-8 border border-gray-800 shadow-lg" style={{ width: 'min(100%, 560px)', height: 'min(100%, 560px)' }}>
@@ -271,7 +250,6 @@ const ChessBoard = ({
         })}
       </div>
       
-      {/* Pawn Promotion Dialog */}
       <Dialog open={promotionPosition !== null} onOpenChange={(open) => {
         if (!open) {
           setPromotionPosition(null);
