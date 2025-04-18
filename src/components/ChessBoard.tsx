@@ -30,7 +30,7 @@ import {
   DialogTitle, 
   DialogDescription 
 } from '@/components/ui/dialog';
-import { Crown, Castle, ArrowUpToLine, Horse } from 'lucide-react';
+import { Crown, Castle, ArrowUpToLine, Sword } from 'lucide-react';
 
 interface ChessBoardProps {
   gameState: GameState;
@@ -206,7 +206,7 @@ const ChessBoard = ({
       case 'queen': return <Crown className="h-6 w-6" />;
       case 'rook': return <Castle className="h-6 w-6" />;
       case 'bishop': return <ArrowUpToLine className="h-6 w-6" />;
-      case 'knight': return <Horse className="h-6 w-6" />;
+      case 'knight': return <Sword className="h-6 w-6" />;
       default: return null;
     }
   };
